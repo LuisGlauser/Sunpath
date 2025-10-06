@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsão Climática</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* (SEU CSS AQUI — mantive exatamente o que você enviou) */
+        /* Variáveis CSS para cores e estilos */
+        :root {
+            --page-bg: #F4F7FA;
+            --header-bg: #3E8FBF;
+            --primary-accent: #2D9CDB;
+            --chart-line: #F2C94C;
+            --warm-temp: #FF5E5E;
+            --cold-temp: #4DA3FF;
+            --scroll-thumb: #8E6CFF;
+            --card-bg: #FFFFFF;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-light: #888888;
+            --border-radius: 12px;
+            --box-shadow: 0 6px 18px rgba(12, 20, 35, 0.06);
+            --transition: all 150ms ease;
+        }
+
+        /* Reset e estilos base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--page-bg);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding-bottom: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--header-bg);
+            height: 68px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .search-bar {
+            width: 90%;
+            height: 40px;
+            background-color: white;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            position: relative;
+        }
+
+        .search-bar input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-light);
+        }
+
+        .search-bar i {
+            color: var(--text-light);
+        }
+
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-top: 8px;
+            display: none;
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .search-suggestions.active {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .suggestion-item:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* Seção de localização e clima atual */
+        .location-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .current-weather {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .weather-icon {
+            font-size: 64px;
+            color: var(--primary-accent);
+            margin-right: 16px;
+        }
+
+        .temperature-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .current-temperature {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .weather-condition {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .temperature-range {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 14px;
+        }
+
+        .temperature-range i {
+            margin-bottom: 4px;
+        }
+
+        /* Layout compacto para mapa e gráfico */
+        .compact-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        @media (min-width: 480px) {
+            .compact-section {
+                flex-direction: row;
+            }
+            
+            .compact-section > * {
+                flex: 1;
+            }
+        }
+
+        .mini-map {
+            width: 100%;
+            height: 160px;
+            background-color: #E0E0E0;
+            border-radius: var(--border-radius);
+            position: relative;
+        }
+
+        .map-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background-color: #FF0000;
+            border-radius: 50%;
+        }
+
+        /* Filtros rápidos */
+        .quick-filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .quick-filters::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .quick-filters::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+
+        .quick-filters::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+
+        .filter-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background-color: white;
+            border: 1px solid #E0E0E0;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 12px;
+            min-width: 70px;
+            flex-shrink: 0;
+        }
+
+        .filter-btn i {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .filter-btn.active {
+            border-color: var(--primary-accent);
+            background-color: rgba(45, 156, 219, 0.1);
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Gráfico compacto */
+        .chart-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .unit-selector {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #E0E0E0;
+            background-color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-end;
+            padding: 10px 0;
+            min-height: 140px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background-color: var(--chart-line);
+            margin: 0 2px;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+        }
+
+        .chart-axis {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--text-light);
+        }
+
+        .hourly-icons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .hourly-icons i {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Seção Visualization Period */
+        .visualization-period {
+            margin-top: 24px;
+        }
+
+        .period-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .period-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .period-selectors {
+            display: flex;
+            gap: 8px;
+        }
+
+        .period-selector {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid #E0E0E0;
+            background-color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Filtros e legendas */
+        .filters-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .filters-btn {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background-color: var(--primary-accent);
+            color: white;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filters-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: white;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .filters-modal.active {
+            display: block;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .temperature-scale {
+            height: 20px;
+            background: linear-gradient(to right, var(--warm-temp), var(--cold-temp));
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
+        .temperature-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+
+        .weather-types {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .weather-type {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 20px;
+            border: 1px solid #E0E0E0;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .weather-type i {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .weather-type.active {
+            border-color: var(--primary-accent);
+            background-color: rgba(45, 156, 219, 0.1);
+        }
+
+        .apply-filters {
+            padding: 12px 20px;
+            border-radius: 20px;
+            background-color: var(--primary-accent);
+            color: white;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* Lista de dias */
+        .days-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .days-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            border: 1px solid #E0E0E0;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .toggle-btn.active {
+            border-color: var(--primary-accent);
+            background-color: rgba(45, 156, 219, 0.1);
+        }
+
+        .days-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        /* Estilo da barra de rolagem */
+        .days-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .days-list::-webkit-scrollbar-track {
+            background: #F0EFFF;
+            border-radius: 3px;
+        }
+
+        .days-list::-webkit-scrollbar-thumb {
+            background: var(--scroll-thumb);
+            border-radius: 3px;
+        }
+
+        .day-card {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 12px;
+            transition: var(--transition);
+        }
+
+        .day-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .day-weather-icon {
+            font-size: 32px;
+            margin-right: 16px;
+            color: var(--primary-accent);
+        }
+
+        .day-temperature {
+            font-size: 22px;
+            font-weight: 600;
+            margin-right: 16px;
+        }
+
+        .day-details {
+            flex: 1;
+        }
+
+        .weather-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background-color: rgba(255, 94, 94, 0.1);
+            color: var(--warm-temp);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .weather-badge i {
+            margin-right: 4px;
+            font-size: 12px;
+        }
+
+        .precipitation {
+            font-size: 12px;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+        }
+
+        .precipitation i {
+            margin-right: 4px;
+            font-size: 12px;
+        }
+
+        .day-date {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-right: 16px;
+        }
+
+        .see-more-btn {
+            padding: 8px 16px;
+            border-radius: 16px;
+            background-color: #EAF6FF;
+            color: var(--primary-accent);
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .see-more-btn:hover {
+            background-color: rgba(45, 156, 219, 0.2);
+        }
+
+        /* Estados vazios */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: var(--text-light);
+        }
+
+        .reset-filters-btn {
+            margin-top: 16px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background-color: var(--primary-accent);
+            color: white;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .reset-filters-btn:hover {
+            background-color: #2387c0;
+        }
+
+        /* Responsividade adicional */
+        @media (min-width: 768px) {
+            .container {
+                max-width: 1100px;
+            }
+            
+            .main-content {
+                display: grid;
+                grid-template-columns: 48% 52%;
+                gap: 24px;
+            }
+            
+            .compact-section {
+                flex-direction: row;
+            }
+            
+            .period-content {
+                display: grid;
+                grid-template-columns: 30% 70%;
+                gap: 24px;
+            }
+            
+            .filters-toggle {
+                display: none;
+            }
+            
+            .filters-column {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="search-bar">
+            <input type="text" placeholder="Sorocaba - SP, Brasil">
+            <i class="fas fa-search"></i>
+            <div class="search-suggestions">
+                <!-- Sugestões aparecerão aqui -->
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Área principal -->
+        <div class="main-content">
+            <!-- Coluna esquerda -->
+            <div class="left-column">
+                <h1 class="location-title">Sorocaba, SP</h1>
+                <h2 class="subtitle">Climate now</h2>
+                
+                <div class="card">
+                    <div class="current-weather">
+                        <div style="display: flex; align-items: center;">
+                            <i class="fas fa-cloud-sun weather-icon"></i>
+                            <div class="temperature-container">
+                                <div class="current-temperature">23°C</div>
+                                <div class="weather-condition">Cloudy</div>
+                            </div>
+                        </div>
+                        <div class="temperature-range">
+                            <i class="fas fa-arrow-up"></i>
+                            <div>29°</div>
+                            <i class="fas fa-arrow-down"></i>
+                            <div>17°</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seção compacta: Mapa e Gráfico lado a lado -->
+                <div class="compact-section">
+                    <div class="card" style="flex: 1;">
+                        <div class="mini-map" id="map-placeholder">
+                            <div class="map-marker"></div>
+                            <!-- placeholder text será injetado via JS -->
+                        </div>
+                        <div style="text-align: center; margin-top: 8px; font-size: 12px; color: var(--text-light);">
+                            Map with city marker
+                        </div>
+                    </div>
+                    
+                    <div class="card chart-card" style="flex: 1;">
+                        <div class="chart-header">
+                            <div class="chart-title">Graphics</div>
+                            <select class="unit-selector" id="unit-selector">
+                                <option>°Celsius</option>
+                                <option>°Fahrenheit</option>
+                            </select>
+                        </div>
+                        <div class="chart-container" id="chart-placeholder">
+                            <!-- Gráfico de barras simples para mobile -->
+                            <!-- barras serão injetadas via JS -->
+                        </div>
+                        <div class="chart-axis">
+                            <span>00</span>
+                            <span>04</span>
+                            <span>08</span>
+                            <span>12</span>
+                            <span>16</span>
+                            <span>20</span>
+                        </div>
+                        <div class="hourly-icons">
+                            <i class="fas fa-moon"></i>
+                            <i class="fas fa-moon"></i>
+                            <i class="fas fa-cloud-sun"></i>
+                            <i class="fas fa-sun"></i>
+                            <i class="fas fa-sun"></i>
+                            <i class="fas fa-cloud-moon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Coluna direita -->
+            <div class="right-column">
+                <div class="quick-filters">
+                    <button class="filter-btn active" data-weather="sunny">
+                        <i class="fas fa-thermometer-half"></i>
+                        Temperature
+                    </button>
+                    <button class="filter-btn" data-weather="windy">
+                        <i class="fas fa-wind"></i>
+                        Wind
+                    </button>
+                    <button class="filter-btn" data-weather="rainy">
+                        <i class="fas fa-cloud-rain"></i>
+                        Rain
+                    </button>
+                    <button class="filter-btn" data-weather="humidity">
+                        <i class="fas fa-tint"></i>
+                        Humidity
+                    </button>
+                    <button class="filter-btn" data-weather="pressure">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Pressure
+                    </button>
+                </div>
+                
+                <!-- Outros elementos da coluna direita podem ser adicionados aqui -->
+            </div>
+        </div>
+        
+        <!-- Seção Visualization Period -->
+        <div class="visualization-period">
+            <div class="card">
+                <div class="period-header">
+                    <h2 class="period-title">Visualization Period</h2>
+                    <div class="period-selectors">
+                        <select class="period-selector" id="month-select">
+                            <option>October</option>
+                            <!-- Outros meses serão injetados pelo JS -->
+                        </select>
+                        <select class="period-selector" id="year-select">
+                            <option>2025</option>
+                            <!-- Outros anos serão injetados pelo JS -->
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Botão para abrir filtros em mobile -->
+                <div class="filters-toggle">
+                    <button class="filters-btn">
+                        <i class="fas fa-filter"></i>
+                        Filters
+                    </button>
+                </div>
+                
+                <!-- Modal de filtros para mobile -->
+                <div class="filters-modal">
+                    <div class="modal-header">
+                        <div class="modal-title">Filters</div>
+                        <button class="close-modal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="temperature-scale" id="temp-scale-for-slider"></div>
+                    <div class="temperature-labels">
+                        <span>Very Hot</span>
+                        <span>Hot</span>
+                        <span>Mild</span>
+                        <span>Cold</span>
+                        <span>Very Cold</span>
+                    </div>
+                    
+                    <div class="weather-types">
+                        <div class="weather-type active" data-wtype="sunny">
+                            <i class="fas fa-sun"></i>
+                            Sunny
+                        </div>
+                        <div class="weather-type" data-wtype="snowy">
+                            <i class="fas fa-snowflake"></i>
+                            Snowy
+                        </div>
+                        <div class="weather-type" data-wtype="rainy">
+                            <i class="fas fa-cloud-rain"></i>
+                            Rainy
+                        </div>
+                        <div class="weather-type" data-wtype="windy">
+                            <i class="fas fa-wind"></i>
+                            Windy
+                        </div>
+                    </div>
+                    
+                    <button class="apply-filters">Apply Filters</button>
+                </div>
+                
+                <div class="period-content">
+                    <!-- Coluna de filtros/legendas (visível apenas em desktop) -->
+                    <div class="filters-column" style="display: none;">
+                        <div class="temperature-scale" id="temp-scale-desktop"></div>
+                        <div class="temperature-labels">
+                            <span>Very Hot</span>
+                            <span>Hot</span>
+                            <span>Mild</span>
+                            <span>Cold</span>
+                            <span>Very Cold</span>
+                        </div>
+                        
+                        <div class="weather-types">
+                            <div class="weather-type active" data-wtype="sunny">
+                                <i class="fas fa-sun"></i>
+                                Sunny
+                            </div>
+                            <div class="weather-type" data-wtype="snowy">
+                                <i class="fas fa-snowflake"></i>
+                                Snowy
+                            </div>
+                            <div class="weather-type" data-wtype="rainy">
+                                <i class="fas fa-cloud-rain"></i>
+                                Rainy
+                            </div>
+                            <div class="weather-type" data-wtype="windy">
+                                <i class="fas fa-wind"></i>
+                                Windy
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Coluna de lista de dias -->
+                    <div class="days-column">
+                        <div class="days-header">
+                            <div class="days-title">Select a date to see details</div>
+                            <div class="view-toggle">
+                                <button class="toggle-btn active">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button class="toggle-btn">
+                                    <i class="fas fa-bars"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="days-list" id="days-list">
+                            <!-- Cartões serão gerados via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script>
+(function(){
+  // ---------- CONFIG & DATA ----------
+  const TODAY = new Date(2025, 9, 5); // 05 Oct 2025
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const TEMP_CATEGORIES = ['Very Hot','Hot','Mild','Cold','Very Cold'];
+  const WEATHER_TYPES = ['sunny','snowy','rainy','windy'];
+
+  // Static days (MM/DD strings + monthIndex + year)
+  const STATIC_DAYS = [
+    { date: '10/05', monthIndex:9, year:2025, temp: 23, tempCategory:'Mild', weatherType:'sunny', precip:10, icon:'fa-sun' },
+    { date: '10/06', monthIndex:9, year:2025, temp: 28, tempCategory:'Hot', weatherType:'sunny', precip:5, icon:'fa-sun' },
+    { date: '10/07', monthIndex:9, year:2025, temp: 18, tempCategory:'Cold', weatherType:'rainy', precip:60, icon:'fa-cloud-showers-heavy' },
+    { date: '10/08', monthIndex:9, year:2025, temp: 16, tempCategory:'Very Cold', weatherType:'snowy', precip:80, icon:'fa-snowflake' },
+    { date: '10/09', monthIndex:9, year:2025, temp: 30, tempCategory:'Very Hot', weatherType:'sunny', precip:2, icon:'fa-sun' },
+    { date: '10/10', monthIndex:9, year:2025, temp: 22, tempCategory:'Mild', weatherType:'windy', precip:15, icon:'fa-wind' },
+
+    { date: '11/02', monthIndex:10, year:2025, temp: 25, tempCategory:'Hot', weatherType:'sunny', precip:5, icon:'fa-sun' },
+    { date: '11/10', monthIndex:10, year:2025, temp: 19, tempCategory:'Mild', weatherType:'rainy', precip:40, icon:'fa-cloud-rain' },
+
+    { date: '12/01', monthIndex:11, year:2025, temp: 32, tempCategory:'Very Hot', weatherType:'sunny', precip:3, icon:'fa-sun' },
+    { date: '12/15', monthIndex:11, year:2025, temp: 20, tempCategory:'Mild', weatherType:'windy', precip:10, icon:'fa-wind' },
+
+    // note: may 2025 entry intentionally for 2026 per your earlier request
+    { date: '05/10', monthIndex:4, year:2026, temp: 21, tempCategory:'Mild', weatherType:'rainy', precip:50, icon:'fa-cloud-rain' },
+
+    { date: '01/05', monthIndex:0, year:2026, temp: -2, tempCategory:'Very Cold', weatherType:'snowy', precip:90, icon:'fa-snowflake' },
+    { date: '01/20', monthIndex:0, year:2026, temp: 5, tempCategory:'Cold', weatherType:'windy', precip:10, icon:'fa-wind' },
+
+    { date: '03/15', monthIndex:2, year:2026, temp: 26, tempCategory:'Hot', weatherType:'sunny', precip:5, icon:'fa-sun' },
+    { date: '04/10', monthIndex:3, year:2026, temp: 17, tempCategory:'Cold', weatherType:'rainy', precip:65, icon:'fa-cloud-showers-heavy' },
+  ];
+
+  const CITY_LIST = [
+    'Sorocaba, SP, Brasil',
+    'São Paulo, SP, Brasil',
+    'Rio de Janeiro, RJ, Brasil',
+    'Curitiba, PR, Brasil',
+    'Belo Horizonte, MG, Brasil',
+    'Porto Alegre, RS, Brasil',
+    'Recife, PE, Brasil',
+    'Fortaleza, CE, Brasil',
+    'Manaus, AM, Brasil'
+  ];
+
+  // ---------- STATE ----------
+  const state = {
+    city: 'Sorocaba, SP, Brasil',
+    favorites: JSON.parse(localStorage.getItem('favorites_days_v1') || '[]'), // array of keys "city|MM/DD|YYYY"
+    history: JSON.parse(localStorage.getItem('search_history_v1') || '[]'),
+    // weather set will be synced from DOM .weather-type.active (if any). If empty -> means "no weather filter" (all allowed)
+    selectedWeatherTypes: new Set(),
+    tempFilterIndex: 2, // default index for Mild
+    monthIndex: TODAY.getMonth(),
+    year: TODAY.getFullYear(),
+    visibleDays: [],
+    selectedDay: null
+  };
+
+  // ---------- HELPERS ----------
+  const q = (s, ctx=document) => ctx.querySelector(s);
+  const qa = (s, ctx=document) => Array.from(ctx.querySelectorAll(s));
+
+  function saveState() {
+    localStorage.setItem('favorites_days_v1', JSON.stringify(state.favorites));
+    localStorage.setItem('search_history_v1', JSON.stringify(state.history.slice(0,10)));
+  }
+
+  function favKey(city, date, year) {
+    return `${city}|${date}|${year}`;
+  }
+
+  // treat selectedWeatherTypes empty => no restriction (all allowed)
+  function weatherMatches(day) {
+    if (state.selectedWeatherTypes.size === 0) return true;
+    return state.selectedWeatherTypes.has(day.weatherType);
+  }
+
+  function tempMatches(day) {
+    if (state.tempFilterIndex === null || state.tempFilterIndex === undefined) return true;
+    return TEMP_CATEGORIES[state.tempFilterIndex] === day.tempCategory;
+  }
+
+  function matchesFilters(day) {
+    if (day.monthIndex !== state.monthIndex) return false;
+    if (day.year !== state.year) return false;
+    if (!weatherMatches(day)) return false;
+    if (!tempMatches(day)) return false;
+    return true;
+  }
+
+  // ---------- RENDER: DAYS LIST ----------
+  function renderDaysList(animated=true) {
+    const container = q('#days-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // compute visible days for selected month/year then apply filters
+    let daysForMonth = STATIC_DAYS.filter(d => d.monthIndex === state.monthIndex && d.year === state.year);
+    state.visibleDays = daysForMonth.filter(d => matchesFilters(d));
+
+    if (state.visibleDays.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state card';
+      empty.innerHTML = '<i class="fas fa-cloud"></i><div style="margin-top:12px">No days match the selected filters.</div>';
+      container.appendChild(empty);
+      renderChartPlaceholder([]);
+      return;
+    }
+
+    // sort by day number
+    state.visibleDays.sort((a,b) => {
+      const da = parseInt(a.date.split('/')[1], 10);
+      const db = parseInt(b.date.split('/')[1], 10);
+      return da - db;
+    });
+
+    state.visibleDays.forEach((d) => {
+  const card = document.createElement('div');
+  card.className = 'day-card';
+
+  card.innerHTML = `
+    <i class="fas ${d.icon} day-weather-icon" aria-hidden="true"></i>
+    <div class="day-temperature">${d.temp}°C</div>
+    <div class="day-details">
+      <div class="weather-badge"><i class="fas fa-thermometer-half"></i> ${d.tempCategory}</div>
+      <div class="precipitation"><i class="fas fa-tint"></i> Precipitation: ${d.precip}%</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <div class="day-date" style="font-size:12px;color:var(--text-light)">${d.date} / ${d.year}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+            <button class="day-fav-btn" aria-label="favorite" title="Favorite day" data-date="${d.date}" data-year="${d.year}">
+              <i class="${state.favorites.includes(favKey(state.city, d.date, d.year)) ? 'fas fa-star' : 'far fa-star'}" style="${state.favorites.includes(favKey(state.city, d.date, d.year)) ? 'color:gold' : ''}"></i>
+            </button>
+            <button class="see-more-btn">See more</button>
+        </div>
+    </div>
+  `;
+
+
+      // attach handlers
+      function toggleFavoriteDay(day, btn) {
+    const modal = document.getElementById('confirm-fav-modal');
+    const yesBtn = document.getElementById('confirm-fav-yes');
+    const noBtn = document.getElementById('confirm-fav-no');
+
+    modal.style.display = 'flex';
+
+    const onConfirm = () => {
+        const key = favKey(state.city, day.date, day.year);
+        if (!state.favorites.includes(key)) {
+            state.favorites.push(key);
+        }
+        saveState();
+        modal.style.display = 'none';
+        window.location.href = 'detalhes.html';
+        cleanup();
+    };
+
+    const onCancel = () => {
+        modal.style.display = 'none';
+        cleanup();
+    };
+
+    function cleanup() {
+        yesBtn.removeEventListener('click', onConfirm);
+        noBtn.removeEventListener('click', onCancel);
+    }
+
+    yesBtn.addEventListener('click', onConfirm);
+    noBtn.addEventListener('click', onCancel);
+}
+
+
+      const seeMoreBtn = card.querySelector('.see-more-btn');
+      seeMoreBtn.addEventListener('click', () => {
+         window.location.href = 'detalhes.html';
+      });
+
+      // touch effects (keep original feel)
+      card.addEventListener('touchstart', function() {
+        this.style.transform = 'translateY(-4px)';
+        this.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.1)';
+      });
+      card.addEventListener('touchend', function() {
+        this.style.transform = '';
+        this.style.boxShadow = '';
+      });
+
+      container.appendChild(card);
+    });
+
+    renderChartPlaceholder(state.visibleDays);
+  }
+
+  // ---------- FAVORITE PER DAY ----------
+  function toggleFavoriteDay(day, btn) {
+    const key = favKey(state.city, day.date, day.year);
+    const idx = state.favorites.indexOf(key);
+    const icon = btn.querySelector('i');
+    if (idx >= 0) {
+      state.favorites.splice(idx,1);
+      if (icon) {
+        icon.className = 'far fa-star';
+        icon.style.color = '';
+      }
+    } else {
+      state.favorites.push(key);
+      if (icon) {
+        icon.className = 'fas fa-star';
+        icon.style.color = 'gold';
+      }
+    }
+    saveState();
+  }
+
+  // ---------- CHART PLACEHOLDER ----------
+  function renderChartPlaceholder(days) {
+    const chart = q('#chart-placeholder');
+    if (!chart) return;
+    chart.innerHTML = '';
+
+    if (!days || days.length === 0) {
+      const ph = document.createElement('div');
+      ph.style.width = '100%';
+      ph.style.display = 'flex';
+      ph.style.alignItems = 'center';
+      ph.style.justifyContent = 'center';
+      ph.style.height = '100%';
+      ph.style.color = 'var(--text-light)';
+      ph.innerHTML = '<div style="text-align:center;"><i class="fas fa-chart-line" style="font-size:28px;margin-bottom:8px"></i><div>Chart placeholder — no data</div></div>';
+      chart.appendChild(ph);
+      return;
+    }
+
+    const barsToShow = Math.min(12, days.length);
+    for (let i=0;i<barsToShow;i++) {
+      const d = days[i];
+      const bar = document.createElement('div');
+      bar.className = 'chart-bar';
+      const minTemp = -10, maxTemp = 40;
+      const normalized = Math.max(0, Math.min(1, (d.temp - minTemp) / (maxTemp - minTemp)));
+      const heightPercent = 10 + normalized * 90;
+      bar.style.height = heightPercent + '%';
+      bar.title = `${d.date}/${d.year} • ${d.temp}°C • ${d.tempCategory}`;
+      bar.style.transition = 'height 450ms ease';
+      chart.appendChild(bar);
+    }
+    for (let j=barsToShow;j<12;j++) {
+      const phb = document.createElement('div');
+      phb.className = 'chart-bar';
+      phb.style.height = '6%';
+      phb.style.opacity = 0.25;
+      chart.appendChild(phb);
+    }
+  }
+
+  // ---------- MAP PLACEHOLDER ----------
+  function renderMapPlaceholder() {
+    const map = q('#map-placeholder');
+    if (!map) return;
+    let ph = q('#map-placeholder .map-placeholder-text');
+    if (!ph) {
+      ph = document.createElement('div');
+      ph.className = 'map-placeholder-text';
+      ph.style.position = 'absolute';
+      ph.style.left = '50%';
+      ph.style.top = '50%';
+      ph.style.transform = 'translate(-50%,-50%)';
+      ph.style.color = 'var(--text-light)';
+      ph.style.fontSize = '13px';
+      ph.style.textAlign = 'center';
+      ph.innerHTML = '<i class="fas fa-map-marker-alt" style="font-size:18px;margin-bottom:6px;"></i><div>Map placeholder — location marker</div>';
+      map.appendChild(ph);
+    }
+  }
+
+  // ---------- AUTOCOMPLETE + HISTORY ----------
+  function setupAutocomplete() {
+    const searchInput = q('.search-bar input');
+    const suggestions = q('.search-suggestions');
+    if (!searchInput || !suggestions) return;
+
+    function showSuggestions(list) {
+      suggestions.innerHTML = '';
+      if (!list || list.length === 0) {
+        suggestions.innerHTML = '<div class="suggestion-item">No suggestions</div>';
+        return;
+      }
+      list.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'suggestion-item';
+        el.textContent = item;
+        el.addEventListener('click', () => {
+          searchInput.value = item;
+          selectCity(item);
+          suggestions.classList.remove('active');
+        });
+        suggestions.appendChild(el);
+      });
+    }
+
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value.trim().toLowerCase();
+      if (val === '') {
+        showSuggestions(state.history.slice(0,5));
+        suggestions.classList.add('active');
+        return;
+      }
+      const matches = CITY_LIST.filter(c => c.toLowerCase().includes(val));
+      showSuggestions(matches);
+      suggestions.classList.add('active');
+    });
+
+    searchInput.addEventListener('focus', () => {
+      showSuggestions(state.history.slice(0,5));
+      suggestions.classList.add('active');
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!q('.search-bar').contains(e.target)) {
+        suggestions.classList.remove('active');
+      }
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        const v = searchInput.value.trim();
+        if (v) selectCity(v);
+        suggestions.classList.remove('active');
+      }
+    });
+  }
+
+  function selectCity(cityName) {
+    state.city = cityName;
+    state.history = [cityName, ...state.history.filter(h => h !== cityName)].slice(0,10);
+    saveState();
+    const loc = q('.location-title');
+    if (loc) loc.textContent = cityName.split(',')[0] || cityName;
+    // mock update current weather display
+    const tmpEl = q('.current-temperature');
+    const condEl = q('.weather-condition');
+    if (tmpEl) tmpEl.textContent = Math.floor(12 + Math.random()*22) + '°C';
+    if (condEl) condEl.textContent = ['Sunny','Cloudy','Rainy','Windy'][Math.floor(Math.random()*4)];
+    // re-render favorites (they are per day so no change) and days list
+    renderDaysList(true);
+  }
+
+  // ---------- TEMP SLIDER (no duplicated labels) ----------
+  function createTempSlider() {
+    ['#temp-scale-for-slider', '#temp-scale-desktop'].forEach(sel => {
+      const container = q(sel);
+      if (!container) return;
+      // avoid duplicate
+      if (container.querySelector('.temp-slider')) return;
+
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.flexDirection = 'column';
+      wrap.style.gap = '6px';
+
+      const currentLabel = document.createElement('div');
+      currentLabel.className = 'temp-current-label';
+      currentLabel.style.fontSize = '12px';
+      currentLabel.style.color = 'var(--text-secondary)';
+      currentLabel.textContent = TEMP_CATEGORIES[state.tempFilterIndex];
+
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = '0';
+      input.max = '4';
+      input.step = '1';
+      input.value = state.tempFilterIndex;
+      input.className = 'temp-slider';
+      input.style.width = '100%';
+
+      input.addEventListener('input', (e) => {
+        state.tempFilterIndex = parseInt(e.target.value,10);
+        // sync other sliders
+        qa('.temp-slider').forEach(s => { if (s !== e.target) s.value = e.target.value; });
+        qa('.temp-current-label').forEach(l => l.textContent = TEMP_CATEGORIES[state.tempFilterIndex]);
+        renderDaysList(true);
+      });
+
+      wrap.appendChild(currentLabel);
+      wrap.appendChild(input);
+      container.appendChild(wrap);
+    });
+  }
+
+  // ---------- WEATHER TYPE TOGGLES ----------
+  function setupWeatherTypeToggles() {
+    // initialize state.selectedWeatherTypes from DOM active classes
+    state.selectedWeatherTypes.clear();
+    qa('.weather-type').forEach(el => {
+      const w = el.dataset.wtype;
+      if (!w) return;
+      if (el.classList.contains('active')) state.selectedWeatherTypes.add(w);
+      // attach click
+      el.addEventListener('click', function() {
+        this.classList.toggle('active');
+        if (this.classList.contains('active')) state.selectedWeatherTypes.add(w);
+        else state.selectedWeatherTypes.delete(w);
+        renderDaysList(true);
+      });
+    });
+  }
+
+  // ---------- QUICK FILTERS (visual only, no unexpected mapping) ----------
+  function setupQuickFilterButtons() {
+    qa('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        this.classList.toggle('active');
+        // keep visual only (no forced mapping to weather types)
+      });
+    });
+  }
+
+  // ---------- MONTH / YEAR SELECT ----------
+  function populateMonthYearSelectors() {
+    const monthSel = q('#month-select');
+    const yearSel = q('#year-select');
+    if (!monthSel || !yearSel) return;
+    monthSel.innerHTML = '';
+    yearSel.innerHTML = '';
+
+    MONTHS.forEach((m, idx) => {
+      const o = document.createElement('option');
+      o.value = idx;
+      o.textContent = m;
+      if (idx === state.monthIndex) o.selected = true;
+      monthSel.appendChild(o);
+    });
+
+    const years = [2025,2026,2027];
+    years.forEach(y => {
+      const o = document.createElement('option');
+      o.value = y;
+      o.textContent = y;
+      if (y === state.year) o.selected = true;
+      yearSel.appendChild(o);
+    });
+
+    monthSel.addEventListener('change', (e) => {
+      const chosenIdx = parseInt(e.target.value,10);
+      let chosenYear = parseInt(yearSel.value,10);
+      // if user selected a past month inside the current year, jump to next year
+      if (chosenIdx < TODAY.getMonth() && chosenYear === TODAY.getFullYear()) {
+        chosenYear = chosenYear + 1;
+        yearSel.value = chosenYear;
+      }
+      state.monthIndex = chosenIdx;
+      state.year = chosenYear;
+      renderDaysList(true);
+    });
+
+    yearSel.addEventListener('change', (e) => {
+      state.year = parseInt(e.target.value,10);
+      renderDaysList(true);
+    });
+  }
+
+  // ---------- DAY DETAIL OVERLAY ----------
+  function showDayDetails(day) {
+    let overlay = q('.day-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'day-overlay';
+      overlay.style.position = 'fixed';
+      overlay.style.left = '50%';
+      overlay.style.top = '50%';
+      overlay.style.transform = 'translate(-50%,-50%)';
+      overlay.style.zIndex = 2000;
+      overlay.style.background = 'white';
+      overlay.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
+      overlay.style.borderRadius = '12px';
+      overlay.style.padding = '18px';
+      overlay.style.width = 'min(520px, 92%)';
+      overlay.style.maxHeight = '80%';
+      overlay.style.overflowY = 'auto';
+      document.body.appendChild(overlay);
+    }
+
+    overlay.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-weight:700">${state.city} • ${day.date}/${day.year}</div>
+        <button class="close-day-details" style="background:none;border:none;font-size:18px;cursor:pointer"><i class="fas fa-times"></i></button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <i class="fas ${day.icon}" style="font-size:36px;color:var(--primary-accent)"></i>
+        <div>
+          <div style="font-size:22px;font-weight:700">${day.temp}°C</div>
+          <div style="color:var(--text-secondary)">${day.tempCategory} • ${day.weatherType}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">Precipitation: ${day.precip}%</div>
+      <div style="margin-bottom:12px">Additional simulated details:</div>
+      <ul style="margin-left:18px;color:var(--text-light)">
+        <li>Wind: ${Math.floor(5+Math.random()*25)} km/h</li>
+        <li>Humidity: ${Math.floor(40+Math.random()*50)}%</li>
+        <li>Chance of extreme event: ${Math.floor(Math.random()*20)}%</li>
+      </ul>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+        <button class="apply-filters" id="close-day-ok" style="padding:8px 14px">OK</button>
+      </div>
+    `;
+
+    overlay.querySelector('.close-day-details').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#close-day-ok').addEventListener('click', () => overlay.remove());
+  }
+
+  // ---------- INIT ----------
+  function init() {
+    // wire autocomplete + history
+    setupAutocomplete();
+
+    // temp slider(s) (do NOT recreate labels that are already in HTML)
+    createTempSlider();
+
+    // weather toggles (sync initial DOM state)
+    setupWeatherTypeToggles();
+
+    // quick filters visual
+    setupQuickFilterButtons();
+
+    // month/year
+    populateMonthYearSelectors();
+
+    // placeholders
+    renderMapPlaceholder();
+    renderDaysList(false);
+
+    // modal open/close
+    const filtersBtn = q('.filters-btn');
+    const filtersModal = q('.filters-modal');
+    const closeModal = q('.close-modal');
+    const applyFilters = q('.apply-filters');
+    if (filtersBtn && filtersModal) filtersBtn.addEventListener('click', () => filtersModal.classList.add('active'));
+    if (closeModal && filtersModal) closeModal.addEventListener('click', () => filtersModal.classList.remove('active'));
+    if (applyFilters && filtersModal) applyFilters.addEventListener('click', () => {
+      filtersModal.classList.remove('active');
+      // read any modal weather-type state is already synced by toggle handlers
+      renderDaysList(true);
+    });
+
+    // if there is a stored history, set title to last
+    if (state.history && state.history.length) {
+      state.city = state.history[0];
+      const loc = q('.location-title');
+      if (loc) loc.textContent = state.city.split(',')[0];
+    }
+
+    // save on unload
+    window.addEventListener('beforeunload', saveState);
+  }
+
+  // kick off
+  init();
+
+})();
+</script>
+
+
+
+</body>
+</html>

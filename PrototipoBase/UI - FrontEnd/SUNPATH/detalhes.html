@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Dia - Previsão Climática</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Variáveis CSS para cores e estilos */
+        :root {
+            --page-bg: #F4F7FA;
+            --header-bg: #3E8FBF;
+            --primary-accent: #2D9CDB;
+            --chart-line: #F2C94C;
+            --warm-temp: #FF5E5E;
+            --cold-temp: #4DA3FF;
+            --scroll-thumb: #8E6CFF;
+            --card-bg: #FFFFFF;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-light: #888888;
+            --border-radius: 12px;
+            --box-shadow: 0 6px 18px rgba(12, 20, 35, 0.06);
+            --transition: all 150ms ease;
+        }
+
+        /* Reset e estilos base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--page-bg);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding-bottom: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--header-bg);
+            height: 68px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* Seção de cabeçalho do dia */
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .day-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .full-date {
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .main-weather {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .weather-icon-large {
+            font-size: 64px;
+            color: var(--primary-accent);
+        }
+
+        .temperature-large {
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        .weather-description {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* Estatísticas do dia */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            background-color: rgba(45, 156, 219, 0.05);
+            border-radius: var(--border-radius);
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            color: var(--primary-accent);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        /* Previsão horária */
+        .hourly-forecast {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hourly-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 16px;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .hourly-scroll::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .hourly-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+
+        .hourly-scroll::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+
+        .hour-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px;
+            min-width: 80px;
+            background-color: rgba(45, 156, 219, 0.05);
+            border-radius: var(--border-radius);
+        }
+
+        .hour-time {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .hour-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--primary-accent);
+        }
+
+        .hour-temp {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* ESTILOS DE PLACEHOLDER DE GRÁFICO (Alterado) */
+        
+        .detailed-chart-wrapper {
+            position: relative;
+            /* Contém os estilos visuais de fundo e tamanho */
+            height: 200px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden; /* Para garantir que o placeholder fique dentro do border-radius */
+        }
+
+        .chart-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: var(--text-light);
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            /* Padrão de placeholder (linhas horizontais) */
+            background-image: repeating-linear-gradient(0deg, #f0f0f0, #f0f0f0 1px, #ffffff 1px, #ffffff 10px); 
+            z-index: 5; /* Coloca o placeholder acima do conteúdo do gráfico simulado */
+        }
+
+        .chart-placeholder i {
+            font-size: 30px;
+            margin-bottom: 5px;
+            color: var(--primary-accent);
+        }
+
+        /* Novo nome para a div que contém as barras, agora sem o estilo de altura/fundo */
+        .detailed-chart-content {
+            height: 100%; /* Ocupa a altura do wrapper */
+            display: flex;
+            align-items: flex-end;
+            padding: 10px 0;
+        }
+
+        .chart-bar-detailed {
+            flex: 1;
+            background-color: var(--chart-line);
+            margin: 0 2px;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+        }
+
+        .chart-axis-detailed {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--text-light);
+        }
+        
+        /* ESTILOS DE PLACEHOLDER DE MAPA (Novo) */
+        .mini-map {
+            width: 100%;
+            height: 160px;
+            background-color: #E0E0E0;
+            border-radius: var(--border-radius);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            /* Padrão de placeholder (listras 45 graus) */
+            background-image: repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 10px, #e8e8e8 10px, #e8e8e8 20px); 
+        }
+
+        .mini-map i {
+            font-size: 40px;
+            color: var(--header-bg);
+            margin-bottom: 10px;
+        }
+
+        .map-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background-color: #FF0000;
+            border-radius: 50%;
+            z-index: 10;
+        }
+
+
+        /* Alertas e recomendações */
+        .alerts-section {
+            margin-bottom: 20px;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px;
+            background-color: #FFF9E6;
+            border-left: 4px solid #FFC107;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .alert-icon {
+            color: #FF9800;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .alert-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .recommendations {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .recommendation-tag {
+            padding: 6px 12px;
+            background-color: #E8F5E9;
+            color: #2E7D32;
+            border-radius: 16px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Detalhes adicionais */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            background-color: rgba(45, 156, 219, 0.05);
+            border-radius: var(--border-radius);
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* Botão de ação */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .primary-btn {
+            background-color: var(--primary-accent);
+            color: white;
+        }
+
+        .secondary-btn {
+            background-color: #EAF6FF;
+            color: var(--primary-accent);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsividade */
+        @media (min-width: 768px) {
+            .container {
+                max-width: 600px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .details-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="back-btn" onclick="window.history.back()">
+            <i class="fas fa-arrow-left"></i>
+            Voltar
+        </button>
+        <div class="header-title">Detalhes do Dia</div>
+        <div style="width: 60px;"></div> </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="day-header">
+                <div class="day-info">
+                    <div class="day-name">Monday</div>
+                    <div class="full-date">04 de Setembro, 2025</div>
+                </div>
+                <div class="main-weather">
+                    <i class="fas fa-sun weather-icon-large"></i>
+                    <div class="temperature-large">38°C </div>
+                </div>
+            </div>
+            <div class="weather-description">Dia ensolarado com poucas nuvens. Ideal para atividades ao ar livre.</div>
+        </div>
+        
+        <div class="card">
+            <div class="mini-map">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <i class="fas fa-map-marker-alt"></i>
+                    **Mapa Placeholder**
+                </div>
+                <div class="map-marker"></div>
+            </div>
+            <div style="text-align: center; margin-top: 8px; font-size: 12px; color: var(--text-light);">
+                Localização da Previsão (Placeholder)
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <i class="fas fa-thermometer-half stat-icon"></i>
+                    <div class="stat-value">29° / 17°</div>
+                    <div class="stat-label">Máx / Mín</div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-tint stat-icon"></i>
+                    <div class="stat-value">31%</div>
+                    <div class="stat-label">Precipitação</div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-wind stat-icon"></i>
+                    <div class="stat-value">12 km/h</div>
+                    <div class="stat-label">Vento</div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-sun stat-icon"></i>
+                    <div class="stat-value">14h</div>
+                    <div class="stat-label">Sol</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">
+                <span>Previsão Horária</span>
+                <select class="unit-selector" style="padding: 4px 8px; border-radius: 12px; border: 1px solid #E0E0E0; font-size: 12px;">
+                    <option>°C</option>
+                    <option>°F</option>
+                </select>
+            </div>
+            <div class="hourly-scroll">
+                <div class="hour-item">
+                    <div class="hour-time">00:00</div>
+                    <i class="fas fa-moon hour-icon"></i>
+                    <div class="hour-temp">22°</div>
+                </div>
+                <div class="hour-item">
+                    <div class="hour-time">03:00</div>
+                    <i class="fas fa-moon hour-icon"></i>
+                    <div class="hour-temp">20°</div>
+                </div>
+                <div class="hour-item">
+                    <div class="hour-time">06:00</div>
+                    <i class="fas fa-cloud-sun hour-icon"></i>
+                    <div class="hour-temp">19°</div>
+                </div>
+                <div class="hour-item">
+                    <div class="hour-time">09:00</div>
+                    <i class="fas fa-sun hour-icon"></i>
+                    <div class="hour-temp">25°</div>
+                </div>
+                <div class="hour-item">
+                    <div class="hour-time">12:00</div>
+                    <i class="fas fa-sun hour-icon"></i>
+                    <div class="hour-temp">32°</div>
+                </div>
+                <div class="hour-item">
+                    <div class="hour-time">15:00</div>
+                    <i class="fas fa-sun hour-icon"></i>
+                    <div class="hour-temp">35°</div>
+                </div>
+                <div class="hour-item">
+                    <div class="hour-time">18:00</div>
+                    <i class="fas fa-sun hour-icon"></i>
+                    <div class="hour-temp">30°</div>
+                </div>
+                <div class="hour-item">
+                    <div class="hour-time">21:00</div>
+                    <i class="fas fa-cloud-moon hour-icon"></i>
+                    <div class="hour-temp">26°</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">
+                <span>Temperatura ao Longo do Dia</span>
+            </div>
+            
+            <div class="detailed-chart-wrapper">
+                <div class="chart-placeholder">
+                    <i class="fas fa-chart-bar"></i>
+                    **Gráfico Placeholder**
+                </div>
+                
+                <div class="detailed-chart-content">
+                    <div class="chart-bar-detailed" style="height: 40%;"></div>
+                    <div class="chart-bar-detailed" style="height: 35%;"></div>
+                    <div class="chart-bar-detailed" style="height: 30%;"></div>
+                    <div class="chart-bar-detailed" style="height: 50%;"></div>
+                    <div class="chart-bar-detailed" style="height: 80%;"></div>
+                    <div class="chart-bar-detailed" style="height: 95%;"></div>
+                    <div class="chart-bar-detailed" style="height: 90%;"></div>
+                    <div class="chart-bar-detailed" style="height: 70%;"></div>
+                    <div class="chart-bar-detailed" style="height: 60%;"></div>
+                    <div class="chart-bar-detailed" style="height: 50%;"></div>
+                    <div class="chart-bar-detailed" style="height: 45%;"></div>
+                    <div class="chart-bar-detailed" style="height: 40%;"></div>
+                </div>
+            </div>
+            
+            <div class="chart-axis-detailed">
+                <span>00h</span>
+                <span>02h</span>
+                <span>04h</span>
+                <span>06h</span>
+                <span>08h</span>
+                <span>10h</span>
+                <span>12h</span>
+                <span>14h</span>
+                <span>16h</span>
+                <span>18h</span>
+                <span>20h</span>
+                <span>22h</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Alertas e Recomendações</div>
+            <div class="alerts-section">
+                <div class="alert-item">
+                    <i class="fas fa-exclamation-triangle alert-icon"></i>
+                    <div class="alert-content">
+                        <div class="alert-title">Alerta de Temperatura Elevada</div>
+                        <div class="alert-description">Temperaturas acima de 35°C esperadas entre 12h e 16h. Tome precauções contra insolação.</div>
+                    </div>
+                </div>
+                <div class="alert-item">
+                    <i class="fas fa-sun alert-icon"></i>
+                    <div class="alert-content">
+                        <div class="alert-title">Índice UV Alto</div>
+                        <div class="alert-description">Índice UV atingirá 9 (Muito Alto) ao meio-dia. Use protetor solar.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="recommendations">
+                <div class="recommendation-tag">
+                    <i class="fas fa-sun"></i>
+                    Protetor Solar
+                </div>
+                <div class="recommendation-tag">
+                    <i class="fas fa-tint"></i>
+                    Hidratação
+                </div>
+                <div class="recommendation-tag">
+                    <i class="fas fa-tshirt"></i>
+                    Roupas Leves
+                </div>
+                <div class="recommendation-tag">
+                    <i class="fas fa-home"></i>
+                    Evite Sol Intenso
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Detalhes Adicionais</div>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Sensação Térmica</div>
+                    <div class="detail-value">40°C</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Umidade</div>
+                    <div class="detail-value">45%</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Pressão</div>
+                    <div class="detail-value">1015 hPa</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Visibilidade</div>
+                    <div class="detail-value">16 km</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Nascer do Sol</div>
+                    <div class="detail-value">06:15</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Pôr do Sol</div>
+                    <div class="detail-value">18:30</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Fase da Lua</div>
+                    <div class="detail-value">Crescente</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Índice UV</div>
+                    <div class="detail-value">9 (Alto)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn secondary-btn" id="saveAgendaBtn">
+                <i class="far fa-bookmark"></i>
+                Save to Agenda
+            </button>
+            
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Interações básicas para a tela de detalhes
+            
+            // Exemplo de interação com os itens horários
+            const hourItems = document.querySelectorAll('.hour-item');
+            hourItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remover seleção anterior
+                    hourItems.forEach(i => i.style.backgroundColor = '');
+                    // Selecionar este item
+                    this.style.backgroundColor = 'rgba(45, 156, 219, 0.1)';
+                    
+                    // Aqui você poderia atualizar o gráfico para mostrar detalhes da hora selecionada
+                });
+            });
+
+            // Alternar entre °C e °F
+            const unitSelector = document.querySelector('.unit-selector');
+            unitSelector.addEventListener('change', function() {
+                const isCelsius = this.value === '°C';
+                // Aqui você converteria todos os valores de temperatura
+                console.log(`Mudando para ${isCelsius ? 'Celsius' : 'Fahrenheit'}`);
+            });
+
+            // Animação suave ao rolar
+            const cards = document.querySelectorAll('.card');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            cards.forEach(card => {
+                card.style.opacity = 0;
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                observer.observe(card);
+            });
+            
+            // NOVO: Adiciona a navegação para acompanhamento.html ao clicar no botão
+            const saveAgendaBtn = document.getElementById('saveAgendaBtn');
+            if (saveAgendaBtn) {
+                saveAgendaBtn.addEventListener('click', function() {
+                    // Simula o salvamento na agenda e redireciona
+                    console.log('Dados salvos na agenda. Redirecionando...');
+                    window.location.href = 'acompanhamento.html';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
